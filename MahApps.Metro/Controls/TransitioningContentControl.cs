@@ -4,14 +4,12 @@
 // All other rights reserved.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace MahApps.Metro.Controls
@@ -54,7 +52,7 @@ namespace MahApps.Metro.Controls
         /// </summary>
         LeftReplace,
         /// <summary>
-        /// Use a custom VisualState, the name must be CustomTransition
+        /// Use a custom VisualState, the name must be set using CustomVisualStatesName property
         /// </summary>
         Custom
     }
@@ -80,10 +78,21 @@ namespace MahApps.Metro.Controls
         public static readonly DependencyProperty TransitionProperty = DependencyProperty.Register("Transition", typeof(TransitionType), typeof(TransitioningContentControl), new FrameworkPropertyMetadata(TransitionType.Default, FrameworkPropertyMetadataOptions.AffectsArrange | FrameworkPropertyMetadataOptions.Inherits, OnTransitionPropertyChanged));
         public static readonly DependencyProperty RestartTransitionOnContentChangeProperty = DependencyProperty.Register("RestartTransitionOnContentChange", typeof(bool), typeof(TransitioningContentControl), new PropertyMetadata(false, OnRestartTransitionOnContentChangePropertyChanged));
         public static readonly DependencyProperty CustomVisualStatesProperty = DependencyProperty.Register("CustomVisualStates", typeof(ObservableCollection<VisualState>), typeof(TransitioningContentControl), new PropertyMetadata(null));
+        public static readonly DependencyProperty CustomVisualStatesNameProperty = DependencyProperty.Register("CustomVisualStatesName", typeof(string), typeof(TransitioningContentControl), new PropertyMetadata("CustomTransition"));
 
-        public ObservableCollection<VisualState> CustomVisualStates {
-          get { return (ObservableCollection<VisualState>)this.GetValue(CustomVisualStatesProperty); }
+        public ObservableCollection<VisualState> CustomVisualStates
+        {
+            get { return (ObservableCollection<VisualState>)this.GetValue(CustomVisualStatesProperty); }
             set { this.SetValue(CustomVisualStatesProperty, value); }
+        }
+        
+        /// <summary>
+        /// Gets or sets the name of the custom transition visual state.
+        /// </summary>
+        public string CustomVisualStatesName
+        {
+            get { return (string)this.GetValue(CustomVisualStatesNameProperty); }
+            set { this.SetValue(CustomVisualStatesNameProperty, value); }
         }
 
         /// <summary>
@@ -203,10 +212,13 @@ namespace MahApps.Metro.Controls
                 AbortTransition();
             }
 
-            if (this.CustomVisualStates != null && this.CustomVisualStates.Any()) {
+            if (this.CustomVisualStates != null && this.CustomVisualStates.Any())
+            {
                 var presentationGroup = VisualStates.TryGetVisualStateGroup(this, PresentationGroup);
-                if (presentationGroup != null) {
-                    foreach (var state in this.CustomVisualStates) {
+                if (presentationGroup != null)
+                {
+                    foreach (var state in this.CustomVisualStates)
+                    {
                         presentationGroup.States.Add(state);
                     }
                 }
@@ -219,6 +231,11 @@ namespace MahApps.Metro.Controls
 
             if (CurrentContentPresentationSite != null)
             {
+                if (ContentTemplateSelector != null)
+                    CurrentContentPresentationSite.ContentTemplate = ContentTemplateSelector.SelectTemplate(Content, this);
+                else
+                    CurrentContentPresentationSite.ContentTemplate = ContentTemplate;
+
                 CurrentContentPresentationSite.Content = Content;
             }
 
@@ -252,6 +269,12 @@ namespace MahApps.Metro.Controls
                 if (RestartTransitionOnContentChange)
                 {
                     CurrentTransition.Completed -= OnTransitionCompleted;
+                }
+
+                if (ContentTemplateSelector != null)
+                {
+                    PreviousContentPresentationSite.ContentTemplate = ContentTemplateSelector.SelectTemplate(oldContent, this);
+                    CurrentContentPresentationSite.ContentTemplate = ContentTemplateSelector.SelectTemplate(newContent, this);
                 }
 
                 CurrentContentPresentationSite.Content = newContent;
@@ -355,7 +378,7 @@ namespace MahApps.Metro.Controls
                 case TransitionType.LeftReplace:
                     return "LeftReplaceTransition";
                 case TransitionType.Custom:
-                    return "CustomTransition";
+                    return CustomVisualStatesName;
             }
         }
     }

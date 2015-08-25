@@ -15,7 +15,7 @@ namespace MahApps.Metro.Controls
     {
         public static readonly DependencyProperty BindableWidthProperty = DependencyProperty.Register("BindableWidth", typeof(double), typeof(ProgressRing), new PropertyMetadata(default(double), BindableWidthCallback));
 
-        public static readonly DependencyProperty IsActiveProperty = DependencyProperty.Register("IsActive", typeof(bool), typeof(ProgressRing), new FrameworkPropertyMetadata(default(bool), FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, IsActiveChanged));
+        public static readonly DependencyProperty IsActiveProperty = DependencyProperty.Register("IsActive", typeof(bool), typeof(ProgressRing), new FrameworkPropertyMetadata(true, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, IsActiveChanged));
 
         public static readonly DependencyProperty IsLargeProperty = DependencyProperty.Register("IsLarge", typeof(bool), typeof(ProgressRing), new PropertyMetadata(true, IsLargeChangedCallback));
 
@@ -30,6 +30,22 @@ namespace MahApps.Metro.Controls
         static ProgressRing()
         {
             DefaultStyleKeyProperty.OverrideMetadata(typeof(ProgressRing), new FrameworkPropertyMetadata(typeof(ProgressRing)));
+            VisibilityProperty.OverrideMetadata(typeof(ProgressRing),
+                                                new FrameworkPropertyMetadata(
+                                                    new PropertyChangedCallback(
+                                                        (ringObject, e) => {
+                                                            if (e.NewValue != e.OldValue) {
+                                                                var ring = (ProgressRing)ringObject;
+                                                                //auto set IsActive to false if we're hiding it.
+                                                                if ((Visibility)e.NewValue != Visibility.Visible) {
+                                                                    //sets the value without overriding it's binding (if any).
+                                                                    ring.SetCurrentValue(ProgressRing.IsActiveProperty, false);
+                                                                } else {
+                                                                    // #1105 don't forget to re-activate
+                                                                    ring.IsActive = true;
+                                                                }
+                                                            }
+                                                        })));
         }
 
         public ProgressRing()
